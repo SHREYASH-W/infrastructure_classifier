@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infrastructure Classifier</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Infrastructure Image Classifier</h1>
+            
+            <div class="upload-section">
+                <label for="imageUpload" class="upload-label">
+                    <span class="upload-icon">📁</span>
+                    <span>Choose an image</span>
+                </label>
+                <input type="file" id="imageUpload" accept="image/*" hidden>
+                
+                <div id="preview" class="preview-container" hidden>
+                    <img id="imagePreview" src="#" alt="Preview">
+                </div>
+                
+                <button id="classifyBtn" disabled>Classify Image</button>
+            </div>
+
+            <div id="spinner" class="spinner" hidden></div>
+            
+            <div id="result" class="result-section" hidden>
+                <h2>Classification Result</h2>
+                <p>Class: <span id="predictedClass"></span></p>
+                <p>Confidence: <span id="confidence"></span>%</p>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
