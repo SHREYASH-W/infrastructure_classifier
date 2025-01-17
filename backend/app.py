@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 import io
 import logging
-
+import os
 app = Flask(__name__)
 CORS(app)
 
@@ -16,7 +16,8 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Load the model
-MODEL_PATH = "./infrastructure_model.keras"
+
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "infrastructure_model.keras")
 model = load_model(MODEL_PATH)
 
 def preprocess_image(img_bytes):
