@@ -17,20 +17,32 @@ logger = logging.getLogger(__name__)
 # Modified model loading function in app.py
 def load_model_safely(model_path):
     """
-    Attempts to load the model using multiple approaches
+    Attempts to load the model using multiple approaches with additional InputLayer handling
     """
     logger = logging.getLogger(__name__)
     
     # First check if the file exists
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model file not found at {model_path}")
-        
+    
+    # Define custom objects with proper input layer handling
+    custom_objects = {
+        'Functional': tf.keras.Model,
+        'functional': tf.keras.Model,
+        'InputLayer': lambda config: tf.keras.layers.InputLayer(
+            input_shape=config['batch_shape'][1:] if 'batch_shape' in config else None,
+            dtype=config.get('dtype', None),
+            sparse=config.get('sparse', None),
+            name=config.get('name', None)
+        )
+    }
+    
     try:
-        # First attempt: Try loading as h5 or keras format
-        logger.info("Attempting to load model with tf.keras.models.load_model")
-        return tf.keras.models.load_model(model_path, compile=False)
+        # First attempt: Try loading with custom objects
+        logger.info("Attempting to load model with custom objects")
+        return tf.keras.models.load_model(model_path, custom_objects=custom_objects, compile=False)
     except Exception as e:
-        logger.warning(f"Standard loading failed: {str(e)}")
+        logger.warning(f"Custom objects loading failed: {str(e)}")
         
         try:
             # Second attempt: Try loading as SavedModel format
@@ -41,13 +53,17 @@ def load_model_safely(model_path):
             logger.warning(f"SavedModel loading failed: {str(e)}")
             
             try:
-                # Third attempt: Try with custom object scope
-                logger.info("Attempting to load with custom object scope")
-                with tf.keras.utils.custom_object_scope({
-                    'Functional': tf.keras.Model,
-                    'functional': tf.keras.Model
-                }):
-                    return tf.keras.models.load_model(model_path, compile=False)
+                # Third attempt: Try converting the model file
+                logger.info("Attempting to load and convert model")
+                model_config = tf.keras.models.load_model(model_path, compile=False, safe_mode=True)
+                if hasattr(model_config, 'get_config'):
+                    config = model_config.get_config()
+                    # Update input layer configs
+                    for layer in config['layers']:
+                        if layer['class_name'] == 'InputLayer' and 'batch_shape' in layer['config']:
+                            layer['config']['input_shape'] = layer['config']['batch_shape'][1:]
+                            del layer['config']['batch_shape']
+                    return tf.keras.Model.from_config(config)
             except Exception as e:
                 logger.error(f"All loading attempts failed: {str(e)}")
                 raise
