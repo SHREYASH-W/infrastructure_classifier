@@ -14,30 +14,49 @@ CORS(app)
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Modified model loading function
+# Modified model loading function in app.py
 def load_model_safely(model_path):
+    """
+    Attempts to load the model using multiple approaches
+    """
+    logger = logging.getLogger(__name__)
+    
+    # First check if the file exists
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model file not found at {model_path}")
+        
     try:
-        # First attempt: direct load with tf.keras
-        return tf.keras.models.load_model(model_path)
+        # First attempt: Try loading as h5 or keras format
+        logger.info("Attempting to load model with tf.keras.models.load_model")
+        return tf.keras.models.load_model(model_path, compile=False)
     except Exception as e:
-        logger.debug(f"First loading attempt failed: {str(e)}")
+        logger.warning(f"Standard loading failed: {str(e)}")
+        
         try:
-            # Second attempt: with custom object scope
-            with tf.keras.utils.custom_object_scope({'Functional': tf.keras.models.Functional}):
-                return tf.keras.models.load_model(model_path)
+            # Second attempt: Try loading as SavedModel format
+            saved_model_path = os.path.dirname(model_path)
+            logger.info(f"Attempting to load as SavedModel from {saved_model_path}")
+            return tf.saved_model.load(saved_model_path)
         except Exception as e:
-            logger.debug(f"Second loading attempt failed: {str(e)}")
+            logger.warning(f"SavedModel loading failed: {str(e)}")
+            
             try:
-                # Third attempt: load with SavedModel format
-                return tf.saved_model.load(model_path)
+                # Third attempt: Try with custom object scope
+                logger.info("Attempting to load with custom object scope")
+                with tf.keras.utils.custom_object_scope({
+                    'Functional': tf.keras.Model,
+                    'functional': tf.keras.Model
+                }):
+                    return tf.keras.models.load_model(model_path, compile=False)
             except Exception as e:
                 logger.error(f"All loading attempts failed: {str(e)}")
                 raise
 
-# Load the model
+# Update the model loading code
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "infrastructure_model.keras")
+logger.info(f"Loading model from {MODEL_PATH}")
+
 try:
-    logger.info(f"Loading model from {MODEL_PATH}")
     model = load_model_safely(MODEL_PATH)
     logger.info("Model loaded successfully")
 except Exception as e:
