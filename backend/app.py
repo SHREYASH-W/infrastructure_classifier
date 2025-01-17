@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Load the model
-MODEL_PATH = "infrastructure_model.keras"
+MODEL_PATH = "D:/infrastructure_model/infrastructure_model.keras"
 model = load_model(MODEL_PATH)
 
 def preprocess_image(img_bytes):
